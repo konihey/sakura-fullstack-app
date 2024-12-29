@@ -1,0 +1,276 @@
+これはさくらVPSにフルスタックアプリのアップするための練習です。
+
+**フロントエンド（Vue.js）:**
+- Vue 3 + Composition API
+- Element Plus（UIコンポーネント）
+- Vue Router（ルーティング）
+- Pinia（状態管理、Vuexの後継）
+- Axios（APIクライアント）
+
+**バックエンド（Flask）:**
+- Flask RESTful（APIエンドポイント）
+- Flask-SQLAlchemy（ORマッパー）
+- Flask-Migrate（DBマイグレーション）
+- Flask-JWT-Extended（認証）
+- Flask-CORS（CORS対応）
+
+**データベース:**
+- PostgreSQL
+
+**インフラ:**
+- Docker / Docker Compose
+  - フロントエンドコンテナ
+  - バックエンドコンテナ
+  - DBコンテナ
+- Nginx（リバースプロキシ）
+- さくらVPS
+
+**開発環境:**
+- Git（ソース管理）
+- VSCode
+- DBeaver（DBクライアント）など
+
+基本的なディレクトリ構成：
+```bash
+fullstack-app/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── views/
+│   │   ├── router/
+│   │   ├── store/
+│   │   └── api/
+│   └── Dockerfile
+├── backend/
+│   ├── app/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   └── services/
+│   └── Dockerfile
+├── nginx/
+│   └── conf.d/
+└── docker-compose.yml
+```
+
+# さくらVPS フルスタックアプリ開発 - 状況報告
+
+## 現在の実装状況
+
+### 環境構築
+- Docker Composeによる3コンテナ構成（frontend, backend, db）
+- 各コンテナ間の通信確認済み
+- 基本的なCORS設定完了
+
+### フロントエンド（Vue.js + Element Plus）
+- 開発環境としてViteを使用
+- 基本的なコンポーネント構造の実装
+- バックエンドAPIとの疎通確認済み
+- ホットリロード等の開発環境が正常に動作
+
+### バックエンド（Flask）
+- 基本的なAPIエンドポイント（/api/test）の実装
+- CORSの設定完了
+- フロントエンドからのリクエストに正常に応答
+
+### データベース（PostgreSQL）
+- コンテナ起動確認済み
+- 基本的な設定完了
+- まだアプリケーションからの接続は未実装
+
+## 技術スタックの理解
+- Viteの役割（開発サーバー、ビルドツール）
+- Vue.jsとViteの関係
+- 開発環境とデプロイ環境の違い
+- Nginxの役割（Webサーバー、リバースプロキシ）
+
+## 次のステップ
+1. データベース実装
+   - テーブル設計
+   - サンプルデータの作成
+   - マイグレーション設定
+
+2. バックエンドAPI拡張
+   - DBアクセス用のモデル作成
+   - CRUD操作用のエンドポイント実装
+   - エラーハンドリング
+
+3. フロントエンド機能追加
+   - APIクライアントの実装
+   - データ表示用のコンポーネント作成
+   - データ操作用のフォーム実装
+
+## 保留中の課題
+- 本番環境用のDocker設定
+- SSL/TLS設定
+- 認証機能の実装
+
+
+# Flask SQLAlchemy + Blueprint ベストプラクティス
+
+## 1. プロジェクト構成
+```
+backend/
+├── app/
+│   ├── __init__.py        # アプリケーション初期化、DB設定
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── user.py        # Userモデル
+│   │   └── task.py        # Taskモデル
+│   └── routes/
+│       ├── __init__.py
+│       ├── user_routes.py  # ユーザー関連API
+│       └── task_routes.py  # タスク関連API
+├── app.py                 # アプリケーションエントリーポイント
+├── Dockerfile
+└── requirements.txt
+```
+
+## 2. コアファイルの設定
+
+### アプリケーション初期化と設定
+```python
+# app/__init__.py
+from flask import Flask
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+
+db = SQLAlchemy()
+migrate = Migrate()
+
+def create_app():
+    app = Flask(__name__)
+    CORS(app)
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@db:5432/fullstack_db'
+    
+    db.init_app(app)
+    migrate.init_app(app, db)
+    
+    # モデルを明示的にインポート
+    from app.models.user import User
+    from app.models.task import Task
+    
+    # Blueprintの登録
+    from app.routes.user_routes import user_bp
+    from app.routes.task_routes import task_bp
+    
+    app.register_blueprint(user_bp)
+    app.register_blueprint(task_bp)
+    
+    return app
+```
+
+### モデル定義
+```python
+# app/models/user.py
+from app import db
+from datetime import datetime
+
+class User(db.Model):
+    __tablename__ = 'users'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }
+```
+
+### API Blueprint実装
+```python
+# app/routes/user_routes.py
+from flask import Blueprint, jsonify, request
+from app.models.user import User
+from app import db
+
+user_bp = Blueprint('user', __name__, url_prefix='/api/users')
+
+@user_bp.route('/', methods=['GET'])
+def get_users():
+    users = User.query.all()
+    return jsonify([user.to_dict() for user in users])
+
+@user_bp.route('/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    user = User.query.get_or_404(user_id)
+    return jsonify(user.to_dict())
+```
+
+## 3. データベースマイグレーション手順
+
+### 初回セットアップ
+```bash
+# 環境のクリーンアップ
+docker compose down -v
+rm -rf backend/migrations
+
+# コンテナ起動
+docker compose up --build
+
+# 別ターミナルでマイグレーション実行
+docker compose exec backend flask db init
+docker compose exec backend flask db migrate -m "Initial migration"
+docker compose exec backend flask db upgrade
+```
+
+### モデル変更時のマイグレーション
+```bash
+# モデル変更後、マイグレーションファイル作成
+docker compose exec backend flask db migrate -m "変更の説明"
+
+# 変更をDBに適用
+docker compose exec backend flask db upgrade
+```
+
+### マイグレーションの確認
+```bash
+# DBの状態確認
+docker compose exec db psql -U postgres fullstack_db -c "\dt"
+docker compose exec db psql -U postgres fullstack_db -c "\d users"
+```
+
+## 4. プラクティスの重要ポイント
+
+### 1. アプリケーション全体の設計
+- アプリケーション初期化とDB設定を`__init__.py`で一元管理
+- `create_app()`内でモデルを明示的にインポート（Flask-Migrateのモデル認識に必須）
+- 関心事の分離による保守性の向上
+- モジュール性の確保
+
+### 2. Blueprint によるAPI設計
+- 機能ごとにルートを分割
+- URLプレフィックスによる体系的な整理（例：`/api/users/`, `/api/tasks/`）
+- エンドポイントの保守が容易
+- チーム開発での分業がしやすい
+- 機能追加・拡張が容易
+
+### 3. データベース管理とマイグレーション
+- マイグレーションは手動で明示的に実行
+- モデル変更はマイグレーションファイルを通して管理
+- 変更履歴を明確に記録
+- 意図しない変更を防止
+- 開発環境でのデータ永続化はDockerボリュームで実現
+
+### 4. ファイル構成と実装方針
+- モデルは`app/models/`内で個別に定義
+- APIルートは`app/routes/`でBlueprintとして実装
+- 環境固有の設定は環境変数で管理
+- 明確なディレクトリ構造による可読性の向上
+- モジュール単位でのテストが容易
+
+このアーキテクチャにより：
+1. コードの保守性と拡張性が向上
+2. チーム開発での効率が上がる
+3. 変更履歴の追跡が容易になる
+4. 機能追加が体系的に行える
+5. テストと品質管理が効率化される
