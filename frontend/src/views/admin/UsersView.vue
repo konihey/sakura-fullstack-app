@@ -38,11 +38,12 @@ const handleDelete = async (userId: number) => {
     fetchUsers()  // 一覧を再取得
   } catch (error: any) {
     if (error?.message !== 'cancel') {
-      ElMessage.error('ユーザーの削除に失敗しました')
+      // APIからのエラーメッセージがある場合はそれを表示
+      const errorMessage = error.response?.data?.message || 'ユーザーの削除に失敗しました'
+      ElMessage.error(errorMessage)
     }
   }
 }
-
 onMounted(fetchUsers)
 </script>
 

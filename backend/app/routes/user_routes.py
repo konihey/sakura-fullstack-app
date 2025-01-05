@@ -32,11 +32,17 @@ def get_user(user_id):
 @require_admin
 def delete_user(user_id):
     try:
+        # 現在のユーザーを取得
+        current_user = User.query.get(get_jwt_identity())
+        
+        # 削除対象のユーザーを取得
         user = User.query.get_or_404(user_id)
         
-        # 管理者は削除できない
-        if user.is_admin:
-            return jsonify({'message': '管理者アカウントは削除できません'}), 403
+        # 自分自身を削除しようとしている場合はエラー
+        if current_user.id == user.id:
+            return jsonify({
+                'message': '自分自身のアカウントは削除できません'
+            }), 403
         
         db.session.delete(user)
         db.session.commit()
