@@ -1,3 +1,4 @@
+// doc/ssl_tls.md
 # Vue + Flask フルスタックアプリのSSL/TLS設定手順
 
 ## 1. 前提環境
@@ -8,32 +9,31 @@
 
 ## 2. 実装手順
 
-### 2.1 nginxの準備
-1. ホストマシンのnginxを停止
+### 2.1 SSL証明書の取得
+1. certbotのインストール
+```bash
+sudo apt update
+sudo apt install certbot python3-certbot-nginx
+```
+
+2. ホストマシンのnginxを停止
 ```bash
 sudo systemctl stop nginx
 sudo systemctl disable nginx
 ```
 
-2. 実行中のプロセスを確認・停止
+3. 実行中のプロセスを確認・停止
 ```bash
 sudo lsof -i :80
 sudo kill -9 [プロセスID]
 ```
 
-### 2.2 SSL証明書の取得
-1. certbotのインストール
-```bash
-sudo apt update
-sudo apt install certbot
-```
-
-2. 証明書の取得
+4. 証明書の取得
 ```bash
 sudo certbot certonly --standalone -d konitest.duckdns.org
 ```
 
-### 2.3 Nginx設定
+### 2.2 Nginx設定
 
 `nginx/conf.d/default.conf`:
 ```nginx
@@ -87,7 +87,7 @@ server {
 }
 ```
 
-### 2.4 Docker Compose設定
+### 2.3 Docker Compose設定
 
 `docker-compose.yml`:
 ```yaml
@@ -161,6 +161,6 @@ docker compose up -d --build
 - MIME Type Sniffing対策（X-Content-Type-Options）
 
 ## 6. 注意点
-- Let's Encrypt証明書は90日で期限切れ（自動更新設定済み）
+- Let's Encrypt証明書は90日で期限切れ（自動更新設定は未実施）
 - DuckDNSドメインの特性上、ブラウザ警告が表示される場合あり
 - 本番環境では独自ドメインの使用を推奨

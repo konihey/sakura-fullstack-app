@@ -1,3 +1,4 @@
+// doc/deploy.md
 # Flask + Vue.js アプリケーション VPSデプロイメントガイド
 
 ## 1. 初期セットアップ
