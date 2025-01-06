@@ -570,18 +570,32 @@ def get_current_user():
   - Vue Router（`/src/router/index.ts`）：ルーティング制御
   - Pinia Store（`/src/stores/auth.ts`）：状態管理
 
-## 次回以降
-## 2. 本番環境向け設定
-- [ ] 環境変数による設定
-  - API_URL
-  - データベース接続情報
-  - JWT設定（特に秘密鍵）
+### **実施済み**
+- レポジトリのgithubへのアップ
+  - 公開設定でclone
+  - tokenを発行してパスワードとしてpush
+- 環境変数による設定の一部
+  - API_URL（VITE_API_URL）
+  - データベース接続情報（DATABASE_URL）
+- NGINXの設定の一部
+  - 基本的なリバースプロキシ設定
+
+### **未実施**
+- 環境変数による設定
+  - JWT設定（秘密鍵）
   - その他の環境依存値
-- [ ] NGINXの設定
+- NGINXの設定
   - SSL/TLS設定
-  - リバースプロキシ設定
   - キャッシュ設定
-- [ ] 本番用Docker設定
+  - セキュリティヘッダー
+- 本番用Docker設定
   - マルチステージビルド
   - 最適化設定
   - ヘルスチェック
+  - ログローテーション
+
+特に優先度が高そうな項目：
+1. SSL/TLS設定（Let's Encrypt等の導入）
+2. JWT秘密鍵の環境変数化
+3. セキュリティヘッダーの追加
+4. 本番向けのDockerfile最適化

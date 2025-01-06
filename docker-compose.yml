@@ -20,7 +20,7 @@ services:
     expose:
       - "5173"
     environment:
-      - VITE_API_URL=http://160.16.131.220
+      - VITE_API_URL=https://konitest.duckdns.org
       
   backend:
     build: ./backend
